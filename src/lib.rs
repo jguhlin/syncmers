@@ -13,15 +13,19 @@ use pulp::Arch;
 // TODO:Denote the reverse complement of x by Embedded Image. For a given order, the canonical form of a k-mer x, denoted by Canonical(x), is the smaller of x and Embedded Image. For example, under the lexicographic order, Canonical(CGGT) = ACCG.
 // Canonical(x) = min(x, revcomp(x))
 
-// Copied from ffforf.
+// Copied from ffforf. Really fast thanks to @sarah-ek
 pub fn complement(c: &mut u8) {
-    if *c != b'N' {
-        if *c & 2 != 0 {
-            *c ^= 4;
+    let val = *c;
+    let new_val = if val != b'N' {
+        if val & 2 != 0 {
+            val ^ 4
         } else {
-            *c ^= 21;
+            val ^ 21
         }
-    }
+    } else {
+        val
+    };
+    *c = new_val;
 }
 
 pub fn revcomp(sequence: &mut [u8]) {
