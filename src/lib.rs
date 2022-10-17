@@ -3,7 +3,6 @@
 /// Planning to implement other methods soon
 ///
 /// TODO: Add Iterator impl's
-
 // use std::iter::{FilterMap, Enumerate};
 // use std::slice::Windows;
 use std::cmp::Ordering;
@@ -53,21 +52,39 @@ pub fn is_revcomp_min(seq: &[u8]) -> bool {
 }
 
 // Best as determined by criterion benchmarks
-pub fn find_syncmers(k: usize, s: usize, ts: &[usize], seq: &[u8]) -> Vec<usize> {
+// 303.62 MiB/s
+pub fn find_syncmers<'a, const N: usize>(
+    k: usize,
+    s: usize,
+    ts: &[usize; N],
+    seq: &'a [u8],
+) -> Vec<&'a [u8]> {
     assert!(seq.len() > k);
     assert!(s < k);
     assert!(ts.iter().all(|&t| t <= k - s));
-    assert!(ts.len() < 5, "Only supports up to 4 syncmers. Email if you'd like more (or change the lines)");
+    assert!(N < 5);
+    assert!(N == ts.len());
 
-    let cmp = match ts.len() {
-        1 => |x: &[usize], y: usize| -> bool { x[0] == y },
-        2 => |x: &[usize], y: usize| -> bool { x[0] == y || x[1] == y },
-        3 => |x: &[usize], y: usize| -> bool { x[0] == y || x[1] == y || x[2] == y },
-        4 => |x: &[usize], y: usize| -> bool { x[0] == y || x[1] == y || x[2] == y || x[3] == y },
-        _ => unreachable!(),
-    };
+    let syncmer_positions = find_syncmers_pos(k, s, ts, seq);
 
-   seq.windows(k)
+    syncmer_positions.iter().map(|&pos| &seq[pos..pos+k]).collect()
+}
+
+// Best as determined by criterion benchmarks
+// 340.19 MiB/s
+pub fn find_syncmers_pos<const N: usize>(
+    k: usize,
+    s: usize,
+    ts: &[usize; N],
+    seq: &[u8],
+) -> Vec<usize> {
+    assert!(seq.len() > k);
+    assert!(s < k);
+    assert!(ts.iter().all(|&t| t <= k - s));
+    assert!(N < 5);
+    assert!(N == ts.len());
+
+    seq.windows(k)
         .enumerate()
         .filter_map(|(i, kmer)| {
             let min_pos = kmer
@@ -75,156 +92,82 @@ pub fn find_syncmers(k: usize, s: usize, ts: &[usize], seq: &[u8]) -> Vec<usize>
                 .enumerate()
                 .min_by(|(_, a), (_, b)| a.cmp(b));
 
-            if cmp(ts, min_pos.unwrap().0) {
+            if N == 1 && ts[0] == min_pos.unwrap().0 {
+                Some(i)
+            } else if N != 1 && ts[0..N].contains(&min_pos.unwrap().0) {
                 Some(i)
             } else {
                 None
             }
-           
         })
         .collect::<Vec<_>>()
 }
 
-// NOTE: "By convention, ties are broken by choosing the leftmost position"
-
-/// 1-parameter syncmer method
+/// This is SIGNIFICANTLY slower than find_syncmers function. Prefer to use that instead.
 /// t is 0-based (unlike in the paper)
-/// NOTE: Sequence should be all upper case (or all lower case)
-// TODO: Remove?
-pub struct Syncmers {
+/// NOTE: "By convention, ties are broken by choosing the leftmost position"
+/// NOTE: Sequence should be all upper case (or all lower case) BEFORE it gets to this point
+/// NOTE: Feed this the canonical strand
+/// ```
+/// # use syncmers::{revcomp, is_revcomp_min};
+/// # let seq = b"ACTGCTGATGCAGTCGCTATCGATCNATNCNGATCATGACTATCGACTACTGVA".to_vec();
+/// assert!(seq.iter().all(|x| x.is_ascii_uppercase()));
+/// let mut revcmp: Vec<u8>;
+/// let mut rev = false;
+/// // Get the canonical strand
+/// let seq = if is_revcomp_min(&seq) {
+///    revcmp = seq.to_vec();
+///    revcomp(&mut revcmp);
+///    &revcmp
+/// } else {
+///    &seq
+/// };
+/// ```
+pub struct Syncmers<'syncmer, const N: usize> {
     pub k: usize,
     pub s: usize,
-    pub t: usize,
+    pub t: &'syncmer [usize; N],
+    pub seq: &'syncmer [u8],
+    pos: usize,
 }
 
-// type FilterMapIter<'a> = FilterMap<Enumerate<Windows<'a, u8>>, &'static fn ((usize, &'a [u8])) -> Option<usize>>;
-
-/* Docs for getting the canonical strand.
-let mut revcmp: Vec<u8>;
-let mut rev = false;
-
-// Get the canonical strand
-let seq = if is_revcomp_min(seq) {
-    rev = true;
-
-    revcmp = seq.to_vec();
-    revcomp(&mut revcmp);
-    &revcmp
-} else {
-    seq
-};
-
-*/
-impl Syncmers {
-    pub fn new(k: usize, s: usize, t: usize) -> Self {
-
+impl<'syncmer, const N: usize> Syncmers<'syncmer, N> {
+    pub fn new(k: usize, s: usize, t: &'syncmer [usize; N], seq: &'syncmer [u8]) -> Self {
         assert!(s < k);
-        assert!(t < k);
-        Syncmers { k, s, t }
+        assert!(t.iter().all(|&x| x <= (k - s)));
+        Syncmers {
+            k,
+            s,
+            t,
+            seq,
+            pos: 0,
+        }
     }
-
-    // TODO: Find a way to return just the iter (FilterMap Iter and it's long return type)
-
-    pub fn find_all(&self, seq: &[u8]) -> Vec<usize> {
-        assert!(seq.len() >= self.k);
-
-       seq.windows(self.k)
-            .enumerate()
-            .filter_map(|(i, kmer)| {
-                let min_pos = kmer
-                    .windows(self.s)
-                    .enumerate()
-                    .min_by(|(_, a), (_, b)| a.cmp(b));
-
-                if min_pos.unwrap().0 == self.t {
-                    Some(i)
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<_>>()
-    }
-
-    /*
-    type FilterMapIter<'a> = FilterMap<Enumerate<Windows<'a, u8>>, &'static fn ((usize, &'a [u8])) -> Option<usize>>;
-
-    pub fn find<'a>(&self, seq: &'a [u8]) -> FilterMapIter<'a> {
-        assert!(seq.len() >= self.k);
-        seq.windows(self.k)
-            .enumerate()
-            .filter_map(|(i, kmer)| {
-                if let Some(min_pos) = kmer
-                    .windows(self.s)
-                    .enumerate()
-                    .min_by(|(_, a), (_, b)| a.cmp(b)) {
-
-                        if min_pos == self.t {
-                            Some(i)
-                        } else {
-                            None        
-                        }
-                    } else {
-                        None
-                    }
-            }) 
-
-    } */
 }
 
-pub struct SyncmersIter<'a> {
-    pub sequence: &'a [u8],
-    pub k: usize,
-    pub s: usize,
-    pub t: usize,
-}
-
-
-impl<'a> Iterator for SyncmersIter<'a> {
-    type Item = &'a [u8];
+impl<'syncmer, const N: usize> Iterator for Syncmers<'syncmer, N> {
+    type Item = &'syncmer [u8];
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.sequence.len() < self.k {
+        if self.seq.len() - self.pos < self.k {
             return None;
         }
 
-        let kmer = &self.sequence[..self.k];
-        self.sequence = &self.sequence[1..];
+        let kmer = &self.seq[self.pos..self.pos + self.k];
 
-        Some(kmer)
-    }
-}
-
-/// Multi-parameter syncmer method
-/// t is 0-based (unlike in the paper)
-pub struct ParameterizedSyncmers<'a> {
-    pub k: usize,
-    pub s: usize,
-    pub t: &'a [usize],
-}
-
-impl<'a> ParameterizedSyncmers<'a> {
-    pub fn new(k: usize, s: usize, t: &'a [usize]) -> Self {
-        assert!(s < k);
-        assert!(t.iter().all(|&t| t < k));
-        ParameterizedSyncmers { k, s, t }
-    }
-
-    pub fn find_all(&self, seq: &[u8]) -> Vec<usize> {
-        seq.windows(self.k)
+        let min_pos = kmer
+            .windows(self.s)
             .enumerate()
-            .filter_map(|(i, kmer)| {
-                let min_pos = kmer
-                    .windows(self.s)
-                    .enumerate()
-                    .min_by(|(_, a), (_, b)| a.cmp(b));
+            .min_by(|(_, a), (_, b)| a.cmp(b));
 
-                if self.t.contains(&min_pos.unwrap().0) {
-                    Some(i)
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<_>>()
+        self.pos += 1;
+        if N == 1 && self.t[0] == min_pos.unwrap().0 {
+            Some(kmer)
+        } else if N != 1 && self.t[0..N].contains(&min_pos.unwrap().0) {
+            Some(kmer)
+        } else {
+            self.next()
+        }
     }
 }
 
@@ -235,14 +178,18 @@ mod test {
     #[test]
     pub fn test_syncmers_fig1b() {
         let sequence = b"CCAGTGTTTACGG";
-        let syncmer_positions = find_syncmers(5, 2, &[2], sequence);
+        let syncmer_positions = find_syncmers_pos(5, 2, &[2], sequence);
         println!("{:?}", syncmer_positions);
         assert!(syncmer_positions == vec![0, 7]);
 
-        let ts: [usize; 1] = [2];
+        let sequence = b"CCAGTGTTTACGG";
+        let syncmers = find_syncmers(5, 2, &[2], sequence);
+        assert!(syncmers == vec![b"CCAGT", b"TTACG"]);
+        println!("{:?}", syncmers);
 
-        let psyncmers = ParameterizedSyncmers::new(5, 2, &ts);
-        let syncmer_positions = psyncmers.find_all(sequence);
-        assert!(syncmer_positions == vec![0, 7]);
+        let sequence = b"CCAGTGTTTACGG";
+        let syncmer_positions = find_syncmers_pos(5, 2, &[2, 3], sequence);
+        println!("{:?}", syncmer_positions);
+        assert!(syncmer_positions == vec![0, 6, 7]);
     }
 }
