@@ -48,6 +48,39 @@ pub fn is_revcomp_min(seq: &[u8]) -> bool {
     false
 }
 
+// Best as determined by criterion benchmarks
+pub fn find_syncmers(k: usize, s: usize, ts: &[usize], seq: &[u8]) -> Vec<usize> {
+    assert!(seq.len() > k);
+    assert!(s < k);
+    assert!(ts.iter().all(|&t| t <= k - s));
+    assert!(ts.len() < 5, "Only supports up to 4 syncmers. Email if you'd like more (or change the lines)");
+
+    let cmp = match ts.len() {
+        1 => |x: &[usize], y: usize| -> bool { x[0] == y },
+        2 => |x: &[usize], y: usize| -> bool { x[0] == y || x[1] == y },
+        3 => |x: &[usize], y: usize| -> bool { x[0] == y || x[1] == y || x[2] == y },
+        4 => |x: &[usize], y: usize| -> bool { x[0] == y || x[1] == y || x[2] == y || x[3] == y },
+        _ => unreachable!(),
+    };
+
+   seq.windows(k)
+        .enumerate()
+        .filter_map(|(i, kmer)| {
+            let min_pos = kmer
+                .windows(s)
+                .enumerate()
+                .min_by(|(_, a), (_, b)| a.cmp(b));
+
+            if cmp(ts, min_pos.unwrap().0) {
+                Some(i)
+            } else {
+                None
+            }
+           
+        })
+        .collect::<Vec<_>>()
+}
+
 // NOTE: "By convention, ties are broken by choosing the leftmost position"
 
 /// 1-parameter syncmer method
@@ -58,7 +91,6 @@ pub struct Syncmers {
     pub k: usize,
     pub s: usize,
     pub t: usize,
-    // pub downsample: f32,
 }
 
 // type FilterMapIter<'a> = FilterMap<Enumerate<Windows<'a, u8>>, &'static fn ((usize, &'a [u8])) -> Option<usize>>;
@@ -135,11 +167,26 @@ impl Syncmers {
     } */
 }
 
-impl Iterator for Syncmers {
-    type Item = usize;
+pub struct SyncmersIter<'a> {
+    pub sequence: &'a [u8],
+    pub k: usize,
+    pub s: usize,
+    pub t: usize,
+}
+
+
+impl<'a> Iterator for SyncmersIter<'a> {
+    type Item = &'a [u8];
 
     fn next(&mut self) -> Option<Self::Item> {
-        unimplemented!()
+        if self.sequence.len() < self.k {
+            return None;
+        }
+
+        let kmer = &self.sequence[..self.k];
+        self.sequence = &self.sequence[1..];
+
+        Some(kmer)
     }
 }
 
@@ -177,14 +224,14 @@ impl<'a> ParameterizedSyncmers<'a> {
     }
 }
 
+#[cfg(test)]
 mod test {
     use super::*;
 
     #[test]
     pub fn test_syncmers_fig1b() {
         let sequence = b"CCAGTGTTTACGG";
-        let syncmers = Syncmers::new(5, 2, 2);
-        let syncmer_positions = syncmers.find_all(sequence);
+        let syncmer_positions = find_syncmers(5, 2, &[2], sequence);
         println!("{:?}", syncmer_positions);
         assert!(syncmer_positions == vec![0, 7]);
 
