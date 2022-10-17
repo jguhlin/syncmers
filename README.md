@@ -3,6 +3,9 @@
 Syncmers as defined by Dutta et al. 2022, https://www.biorxiv.org/content/10.1101/2022.01.10.475696v2.full
 Esp Fig 1b / Algorithm 1. Planning to implement other methods soon
 
+## Definition
+Using the parameterized syncmer scheme, a syncmer is a kmer whose smallest smer is at a given target position (t).
+
 ## Extract Syncmers from &[u8]
 ```rust
 let sequence = b"CCAGTGTTTACGG";
