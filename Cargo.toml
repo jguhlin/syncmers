@@ -1,6 +1,6 @@
 [package]
 name = "syncmers"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["Joseph Guhlin <joseph.guhlin@gmail.com>"]
 license = "MIT OR Apache-2.0"
@@ -15,6 +15,7 @@ exclude = [
 ]
 
 [dependencies]
+pulp = "0.4.0"
 
 [profile.release]
 opt-level = 3
@@ -29,7 +30,6 @@ opt-level = 3
 
 [dev-dependencies]
 criterion = "0.4.0"
-pulp = "0.4.0"
 jetscii = "0.5.3"
 
 [[bench]]

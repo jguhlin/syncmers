@@ -4,11 +4,49 @@
 ///
 /// TODO: Add Iterator impl's
 
-use std::iter::{FilterMap, Enumerate};
-use std::slice::Windows;
+// use std::iter::{FilterMap, Enumerate};
+// use std::slice::Windows;
+use std::cmp::Ordering;
+
+use pulp::Arch;
 
 // TODO:Denote the reverse complement of x by Embedded Image. For a given order, the canonical form of a k-mer x, denoted by Canonical(x), is the smaller of x and Embedded Image. For example, under the lexicographic order, Canonical(CGGT) = ACCG.
 // Canonical(x) = min(x, revcomp(x))
+
+// Copied from ffforf.
+pub fn complement(c: &mut u8) {
+    if *c != b'N' {
+        if *c & 2 != 0 {
+            *c ^= 4;
+        } else {
+            *c ^= 21;
+        }
+    }
+}
+
+pub fn revcomp(sequence: &mut [u8]) {
+    let arch = Arch::new();
+    arch.dispatch(|| {
+        sequence.reverse();
+        sequence.make_ascii_uppercase();
+        sequence.iter_mut().for_each(complement);
+    });
+}
+
+pub fn is_revcomp_min(seq: &[u8]) -> bool {
+    assert!(!seq.is_empty());
+    for i in 0..seq.len() {
+        let mut c = seq[seq.len() - i - 1];
+        complement(&mut c);
+        match seq[i].cmp(&c) {
+            Ordering::Less => return true,
+            Ordering::Greater => return false,
+            Ordering::Equal => continue,
+        }
+    }
+
+    false
+}
 
 // NOTE: "By convention, ties are broken by choosing the leftmost position"
 
@@ -25,6 +63,22 @@ pub struct Syncmers {
 
 // type FilterMapIter<'a> = FilterMap<Enumerate<Windows<'a, u8>>, &'static fn ((usize, &'a [u8])) -> Option<usize>>;
 
+/* Docs for getting the canonical strand.
+let mut revcmp: Vec<u8>;
+let mut rev = false;
+
+// Get the canonical strand
+let seq = if is_revcomp_min(seq) {
+    rev = true;
+
+    revcmp = seq.to_vec();
+    revcomp(&mut revcmp);
+    &revcmp
+} else {
+    seq
+};
+
+*/
 impl Syncmers {
     pub fn new(k: usize, s: usize, t: usize) -> Self {
 
@@ -37,7 +91,8 @@ impl Syncmers {
 
     pub fn find_all(&self, seq: &[u8]) -> Vec<usize> {
         assert!(seq.len() >= self.k);
-        seq.windows(self.k)
+
+       seq.windows(self.k)
             .enumerate()
             .filter_map(|(i, kmer)| {
                 let min_pos = kmer
@@ -130,6 +185,7 @@ mod test {
         let sequence = b"CCAGTGTTTACGG";
         let syncmers = Syncmers::new(5, 2, 2);
         let syncmer_positions = syncmers.find_all(sequence);
+        println!("{:?}", syncmer_positions);
         assert!(syncmer_positions == vec![0, 7]);
 
         let ts: [usize; 1] = [2];
