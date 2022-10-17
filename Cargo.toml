@@ -1,0 +1,38 @@
+[package]
+name = "syncmers"
+version = "0.1.0"
+edition = "2021"
+authors = ["Joseph Guhlin <joseph.guhlin@gmail.com>"]
+license = "MIT OR Apache-2.0"
+description = "Rust library for finding syncmers"
+repository = "https://github.com/jguhlin/syncmers"
+categories = ["science"]
+keywords = ["bioinformatics", "fasta", "sequence", "fastq", "syncmers"]
+exclude = [
+	"**/*.fasta",
+	"libsfasta/test_data/",
+	"*.profdata",
+]
+
+[dependencies]
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units  = 1
+
+[profile.dev]
+debug = true
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[dev-dependencies]
+criterion = "0.4.0"
+pulp = "0.4.0"
+jetscii = "0.5.3"
+
+[[bench]]
+name = "find_syncmers" 
+harness = false
+
