@@ -13,6 +13,7 @@ use pulp::Arch;
 // Canonical(x) = min(x, revcomp(x))
 
 // Copied from ffforf. Really fast thanks to @sarah-ek
+/// Complement a sequence, primarily used with revcomp function
 pub fn complement(c: &mut u8) {
     let val = *c;
     let new_val = if val != b'N' {
@@ -27,6 +28,7 @@ pub fn complement(c: &mut u8) {
     *c = new_val;
 }
 
+/// Reverse complement a DNA Sequence
 pub fn revcomp(sequence: &mut [u8]) {
     let arch = Arch::new();
     arch.dispatch(|| {
@@ -36,6 +38,9 @@ pub fn revcomp(sequence: &mut [u8]) {
     });
 }
 
+/// Test if the reverse complement is smaller, lexicographically, than the original sequence
+/// Syncmers should be obtained from the Canonical strand (minimum strand).
+/// Use this function for your own tests. It is not used in the Syncmer implementation.
 pub fn is_revcomp_min(seq: &[u8]) -> bool {
     assert!(!seq.is_empty());
     for i in 0..seq.len() {
@@ -53,6 +58,26 @@ pub fn is_revcomp_min(seq: &[u8]) -> bool {
 
 // Best as determined by criterion benchmarks
 // 303.62 MiB/s
+/// Find syncmers from &[u8] and return Vec<&[u8]>
+/// 
+/// Parameterized syncmers as defined by Dutta et al. 2022, https://www.biorxiv.org/content/10.1101/2022.01.10.475696v2.full
+/// Not all implemented yet (downsampling, windows, are not, for example).
+/// 
+/// # Arguments
+/// k: kmer length
+/// s: smer length
+/// ts: Target positions, set at beginning or end for open/closed syncmers only.
+///     Smallest smer must appear in one of these position of the kmer to be a valid syncmer
+/// 
+/// ```rust
+/// # use syncmers::find_syncmers;
+/// let sequence = b"CCAGTGTTTACGG";
+/// let syncmers = find_syncmers(5, 2, &[2], sequence);
+/// assert!(syncmers == vec![b"CCAGT", b"TTACG"]);
+/// 
+/// // You may also use multiple values for ts
+/// let syncmers = find_syncmers(5, 2, &[2, 3], sequence);
+/// ```
 pub fn find_syncmers<'a, const N: usize>(
     k: usize,
     s: usize,
@@ -72,6 +97,16 @@ pub fn find_syncmers<'a, const N: usize>(
 
 // Best as determined by criterion benchmarks
 // 340.19 MiB/s
+/// Find positions of syncmers
+/// 
+/// # Arguments
+/// k: kmer length
+/// s: smer length
+/// ts: Target positions, set at beginning or end for open/closed syncmers only.
+///    Smallest smer must appear in one of these position of the kmer to be a valid syncmer
+/// 
+/// # Returns
+/// Vec<usize> of positions of syncmers (kmers meeting above critera) in the sequence
 pub fn find_syncmers_pos<const N: usize>(
     k: usize,
     s: usize,
