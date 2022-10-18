@@ -107,6 +107,7 @@ pub fn find_syncmers<'a, const N: usize>(
 /// 
 /// # Returns
 /// Vec<usize> of positions of syncmers (kmers meeting above critera) in the sequence
+#[allow(clippy::if_same_then_else)]
 pub fn find_syncmers_pos<const N: usize>(
     k: usize,
     s: usize,
@@ -180,6 +181,7 @@ impl<'syncmer, const N: usize> Syncmers<'syncmer, N> {
     }
 }
 
+#[allow(clippy::if_same_then_else)]
 impl<'syncmer, const N: usize> Iterator for Syncmers<'syncmer, N> {
     type Item = &'syncmer [u8];
 

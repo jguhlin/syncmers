@@ -35,6 +35,7 @@ pub fn find_syncmers<const N: usize>(k: usize, s: usize, t: &[usize; N], seq: &[
 }
 
 // 340.19 MiB/s
+#[allow(clippy::if_same_then_else)]
 pub fn find_syncmers_anonfn<const N: usize>(
     k: usize,
     s: usize,
