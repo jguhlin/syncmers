@@ -16,16 +16,13 @@ use pulp::Arch;
 /// Complement a sequence, primarily used with revcomp function
 pub fn complement(c: &mut u8) {
     let val = *c;
-    let new_val = if val != b'N' {
+    if val != b'N' {
         if val & 2 != 0 {
-            val ^ 4
+            *c = val ^ 4
         } else {
-            val ^ 21
-        }
-    } else {
-        val
+            *c = val ^ 21
+        };
     };
-    *c = new_val;
 }
 
 /// Reverse complement a DNA Sequence
