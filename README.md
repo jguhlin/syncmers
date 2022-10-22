@@ -30,7 +30,6 @@ assert!(syncmers == vec![b"CCAGT", b"TTACG"]);
 println!("{:?}", syncmers);
 ```
 
-
 ## Find positions of Syncmers
 ```rust
 let sequence = b"CCAGTGTTTACGG";
