@@ -69,22 +69,23 @@ pub fn is_revcomp_min(seq: &[u8]) -> bool {
 /// s: smer length
 /// ts: Target positions, set at beginning or end for open/closed syncmers only.
 ///     Smallest smer must appear in one of these position of the kmer to be a valid syncmer
+/// downsample fraction: None, or Some(float) between 0 and 1. If Some, only return some syncmers.
 ///
 /// ```rust
 /// # use syncmers::find_syncmers;
 /// let sequence = b"CCAGTGTTTACGG";
-/// let syncmers = find_syncmers(5, 2, &[2], sequence);
+/// let syncmers = find_syncmers(5, 2, &[2], None, sequence);
 /// assert!(syncmers == vec![b"CCAGT", b"TTACG"]);
 ///
 /// // You may also use multiple values for ts
-/// let syncmers = find_syncmers(5, 2, &[2, 3], sequence);
+/// let syncmers = find_syncmers(5, 2, &[2, 3], None, sequence);
 /// ```
 pub fn find_syncmers<'a, const N: usize>(
     k: usize,
     s: usize,
     ts: &[usize; N],
-    seq: &'a [u8],
     downsample: Option<f64>,
+    seq: &'a [u8],
 ) -> Vec<&'a [u8]> {
     assert!(seq.len() > k);
     assert!(s < k);
@@ -245,7 +246,7 @@ mod test {
         assert!(syncmer_positions == vec![0, 7]);
 
         let sequence = b"CCAGTGTTTACGG";
-        let syncmers = find_syncmers(5, 2, &[2], sequence, None);
+        let syncmers = find_syncmers(5, 2, &[2], None, sequence);
         assert!(syncmers == vec![b"CCAGT", b"TTACG"]);
         println!("{:?}", syncmers);
 
