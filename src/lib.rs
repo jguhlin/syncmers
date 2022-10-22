@@ -8,6 +8,8 @@
 use std::cmp::Ordering;
 
 use pulp::Arch;
+use twox_hash::xxh3::Hash64;
+use std::hash::Hasher;
 
 // TODO:Denote the reverse complement of x by Embedded Image. For a given order, the canonical form of a k-mer x, denoted by Canonical(x), is the smaller of x and Embedded Image. For example, under the lexicographic order, Canonical(CGGT) = ACCG.
 // Canonical(x) = min(x, revcomp(x))
@@ -28,12 +30,11 @@ pub fn complement(c: &mut u8) {
     *c = new_val;
 }
 
-/// Reverse complement a DNA Sequence
+/// Reverse complement a DNA Sequence. Case preserved
 pub fn revcomp(sequence: &mut [u8]) {
     let arch = Arch::new();
     arch.dispatch(|| {
         sequence.reverse();
-        sequence.make_ascii_uppercase();
         sequence.iter_mut().for_each(complement);
     });
 }
@@ -83,6 +84,7 @@ pub fn find_syncmers<'a, const N: usize>(
     s: usize,
     ts: &[usize; N],
     seq: &'a [u8],
+    downsample: Option<f64>,
 ) -> Vec<&'a [u8]> {
     assert!(seq.len() > k);
     assert!(s < k);
@@ -90,12 +92,32 @@ pub fn find_syncmers<'a, const N: usize>(
     assert!(N < 5);
     assert!(N == ts.len());
 
+    let mut downsample_threshold = None;
+    if let Some(downsample) = downsample {
+        assert!(downsample > 0.0);
+        assert!(downsample <= 1.0);
+        downsample_threshold = Some((std::u64::MAX as f64 * downsample) as u64);
+    }
+
     let syncmer_positions = find_syncmers_pos(k, s, ts, seq);
 
-    syncmer_positions
-        .iter()
-        .map(|&pos| &seq[pos..pos + k])
-        .collect()
+    if downsample.is_none() {
+        syncmer_positions
+            .iter()
+            .map(|&pos| &seq[pos..pos + k])
+            .collect()
+    } else {
+        syncmer_positions
+            .iter()
+            .map(|&pos| &seq[pos..pos + k])
+            .filter(|&syncmer| {
+                let mut hash = Hash64::with_seed(42);
+                hash.write(syncmer);
+                let hash = hash.finish();
+                hash < downsample_threshold.unwrap()
+            })
+            .collect()
+    }
 }
 
 // Best as determined by criterion benchmarks
@@ -223,7 +245,7 @@ mod test {
         assert!(syncmer_positions == vec![0, 7]);
 
         let sequence = b"CCAGTGTTTACGG";
-        let syncmers = find_syncmers(5, 2, &[2], sequence);
+        let syncmers = find_syncmers(5, 2, &[2], sequence, None);
         assert!(syncmers == vec![b"CCAGT", b"TTACG"]);
         println!("{:?}", syncmers);
 
