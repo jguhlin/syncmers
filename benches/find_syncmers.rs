@@ -3,6 +3,65 @@ use pulp::Arch;
 
 use syncmers::*;
 
+pub fn find_syncmers_current<const N: usize>(
+    k: usize,
+    s: usize,
+    ts: &[usize; N],
+    seq: &[u8],
+) -> Vec<usize> {
+    assert!(seq.len() > k);
+    assert!(s < k);
+    assert!(ts.iter().all(|&t| t <= k - s));
+    assert!(N < 5);
+    assert!(N == ts.len());
+
+    seq.windows(k)
+        .enumerate()
+        .filter_map(|(i, kmer)| {
+            let min_pos = kmer
+                .windows(s)
+                .enumerate()
+                .min_by(|(_, a), (_, b)| a.cmp(b));
+
+            if N == 1 && ts[0] == min_pos.unwrap().0 {
+                Some(i)
+            } else if N != 1 && ts[0..N].contains(&min_pos.unwrap().0) {
+                Some(i)
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>()
+}
+
+// Slight speed boost
+pub fn find_syncmers_alt<'a, const N: usize>(
+    k: usize,
+    s: usize,
+    ts: &[usize; N],
+    seq: &'a [u8],
+) -> Vec<&'a [u8]> {
+    assert!(seq.len() > k);
+    assert!(s < k);
+    assert!(ts.iter().all(|&t| t <= k - s));
+    assert!(N < 5);
+    assert!(N == ts.len());
+
+        seq.windows(k)
+            .filter(|kmer| {
+                let maxlen = std::cmp::min(ts[ts.len() - 1] + s, k);
+                if let Some(x) = kmer[..maxlen]
+                    .windows(s)
+                    .enumerate()
+                    .min_by(|(_, a), (_, b)| a.cmp(b)) {
+                        ts[0..N].contains(&x.0)
+                    } else {
+                        false
+                    }
+            }).collect::<Vec<_>>()               
+}
+
+
 pub fn find_syncmers<const N: usize>(k: usize, s: usize, t: &[usize; N], seq: &[u8]) -> Vec<usize> {
     assert!(seq.len() > k);
     assert!(s < k);
@@ -221,7 +280,19 @@ fn criterion_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("syncmers");
     group.throughput(criterion::Throughput::Bytes(sequence.len() as u64));
 
-    // 
+    group.bench_function("find_syncmers_current", |b| {
+        b.iter(|| {
+            let _syncmers = find_syncmers_current(5, 2, &[2], black_box(&sequence));
+        })
+    });
+
+    group.bench_function("find_syncmers_alt", |b| {
+        b.iter(|| {
+            let _syncmers = find_syncmers_alt(5, 2, &[2], black_box(&sequence));
+        })
+    });
+
+    //
     group.bench_function("find_syncmers_fn", |b| {
         b.iter(|| {
             let _syncmers = syncmers::find_syncmers(5, 2, &[2], black_box(&sequence));

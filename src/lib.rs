@@ -59,22 +59,22 @@ pub fn is_revcomp_min(seq: &[u8]) -> bool {
 // Best as determined by criterion benchmarks
 // 303.62 MiB/s
 /// Find syncmers from &[u8] and return Vec<&[u8]>
-/// 
+///
 /// Parameterized syncmers as defined by Dutta et al. 2022, https://www.biorxiv.org/content/10.1101/2022.01.10.475696v2.full
 /// Not all implemented yet (downsampling, windows, are not, for example).
-/// 
+///
 /// # Arguments
 /// k: kmer length
 /// s: smer length
 /// ts: Target positions, set at beginning or end for open/closed syncmers only.
 ///     Smallest smer must appear in one of these position of the kmer to be a valid syncmer
-/// 
+///
 /// ```rust
 /// # use syncmers::find_syncmers;
 /// let sequence = b"CCAGTGTTTACGG";
 /// let syncmers = find_syncmers(5, 2, &[2], sequence);
 /// assert!(syncmers == vec![b"CCAGT", b"TTACG"]);
-/// 
+///
 /// // You may also use multiple values for ts
 /// let syncmers = find_syncmers(5, 2, &[2, 3], sequence);
 /// ```
@@ -92,19 +92,22 @@ pub fn find_syncmers<'a, const N: usize>(
 
     let syncmer_positions = find_syncmers_pos(k, s, ts, seq);
 
-    syncmer_positions.iter().map(|&pos| &seq[pos..pos+k]).collect()
+    syncmer_positions
+        .iter()
+        .map(|&pos| &seq[pos..pos + k])
+        .collect()
 }
 
 // Best as determined by criterion benchmarks
 // 340.19 MiB/s
 /// Find positions of syncmers
-/// 
+///
 /// # Arguments
 /// k: kmer length
 /// s: smer length
 /// ts: Target positions, set at beginning or end for open/closed syncmers only.
 ///    Smallest smer must appear in one of these position of the kmer to be a valid syncmer
-/// 
+///
 /// # Returns
 /// Vec<usize> of positions of syncmers (kmers meeting above critera) in the sequence
 #[allow(clippy::if_same_then_else)]
