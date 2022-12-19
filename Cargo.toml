@@ -1,6 +1,6 @@
 [package]
 name = "syncmers"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 authors = ["Joseph Guhlin <joseph.guhlin@gmail.com>"]
 license = "MIT OR Apache-2.0"
@@ -15,7 +15,7 @@ exclude = [
 ]
 
 [dependencies]
-pulp = "0.4.0" # TODO: Make conditional (only use on x64/x86 targets) 
+pulp = "0.10.4"
 twox-hash = "1.6.3"
 
 [profile.release]
