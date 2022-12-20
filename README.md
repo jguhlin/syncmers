@@ -38,5 +38,8 @@ println!("{:?}", syncmer_positions);
 assert!(syncmer_positions == vec![0, 7]);
 ```
 
+# TODO
+Make sure X's are never the start / end of syncmers
+
 # Changelog
 0.1.4: Added downsampling support
