@@ -1,6 +1,6 @@
 [package]
 name = "syncmers"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 authors = ["Joseph Guhlin <joseph.guhlin@gmail.com>"]
 license = "MIT OR Apache-2.0"
@@ -15,7 +15,7 @@ exclude = [
 ]
 
 [dependencies]
-pulp = "0.10.4"
+pulp = "0.13.1"
 twox-hash = "1.6.3"
 
 [profile.release]

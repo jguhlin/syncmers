@@ -275,10 +275,16 @@ fn criterion_benchmark(c: &mut Criterion) {
     let mut sequence = sequence.to_vec();
     sequence.make_ascii_uppercase();
 
-    let ts: [usize; 1] = [2];
+    let _ts: [usize; 1] = [2];
 
     let mut group = c.benchmark_group("syncmers");
     group.throughput(criterion::Throughput::Bytes(sequence.len() as u64));
+
+    group.bench_function("find_syncmers_from_lib", |b| {
+        b.iter(|| {
+            let _syncmers = syncmers::find_syncmers_pos(5, 2, &[2], black_box(&sequence));
+        })
+    });
 
     group.bench_function("find_syncmers_current", |b| {
         b.iter(|| {
@@ -295,7 +301,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     //
     group.bench_function("find_syncmers_fn", |b| {
         b.iter(|| {
-            let _syncmers = syncmers::find_syncmers(5, 2, &[2], black_box(&sequence));
+            let _syncmers = syncmers::find_syncmers(5, 2, &[2], None, black_box(&sequence));
         })
     });
 
@@ -409,7 +415,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
 criterion_group! {
     name=syncmers;
-    config = Criterion::default().significance_level(0.05).measurement_time(std::time::Duration::from_secs(10));
+    config = Criterion::default().significance_level(0.05).measurement_time(std::time::Duration::from_secs(15));
     targets=criterion_benchmark
 }
 

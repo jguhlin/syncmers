@@ -3,13 +3,15 @@
 /// Planning to implement other methods soon
 ///
 /// TODO: Add Iterator impl's
+/// TODO: Add in strobemers: https://genome.cshlp.org/content/31/11/2080.full
+
 // use std::iter::{FilterMap, Enumerate};
 // use std::slice::Windows;
 use std::cmp::Ordering;
+use std::hash::Hasher;
 
 use pulp::Arch;
 use twox_hash::xxh3::Hash64;
-use std::hash::Hasher;
 
 // TODO:Denote the reverse complement of x by Embedded Image. For a given order, the canonical form of a k-mer x, denoted by Canonical(x), is the smaller of x and Embedded Image. For example, under the lexicographic order, Canonical(CGGT) = ACCG.
 // Canonical(x) = min(x, revcomp(x))
@@ -145,6 +147,8 @@ pub fn find_syncmers_pos<const N: usize>(
     assert!(ts.iter().all(|&t| t <= k - s));
     assert!(N < 5);
     assert!(N == ts.len());
+
+    let arch = Arch::new();
 
     seq.windows(k)
         .enumerate()
