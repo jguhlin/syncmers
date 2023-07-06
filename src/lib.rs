@@ -13,7 +13,7 @@ use std::hash::Hasher;
 use pulp::Arch;
 use twox_hash::xxh3::Hash64;
 
-// TODO:Denote the reverse complement of x by Embedded Image. For a given order, the canonical form of a k-mer x, denoted by Canonical(x), is the smaller of x and Embedded Image. For example, under the lexicographic order, Canonical(CGGT) = ACCG.
+// TODO. For a given order, the canonical form of a k-mer x, denoted by Canonical(x), is the smaller of x and Embedded Image. For example, under the lexicographic order, Canonical(CGGT) = ACCG.
 // Canonical(x) = min(x, revcomp(x))
 
 // Copied from ffforf. Really fast thanks to @sarah-ek
