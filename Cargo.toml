@@ -30,8 +30,7 @@ debug = true
 opt-level = 3
 
 [dev-dependencies]
-criterion = "0.4.0"
-jetscii = "0.5.3"
+criterion = "0.5.1"
 
 [[bench]]
 name = "find_syncmers" 

@@ -148,8 +148,6 @@ pub fn find_syncmers_pos<const N: usize>(
     assert!(N < 5);
     assert!(N == ts.len());
 
-    let arch = Arch::new();
-
     seq.windows(k)
         .enumerate()
         .filter_map(|(i, kmer)| {
