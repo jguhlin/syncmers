@@ -8,10 +8,12 @@
 // use std::iter::{FilterMap, Enumerate};
 // use std::slice::Windows;
 use std::cmp::Ordering;
-use std::hash::Hasher;
 
 use pulp::Arch;
-use twox_hash::xxh3::Hash64;
+use xxhash_rust::xxh3::xxh3_64_with_secret;
+use xxhash_rust::const_xxh3::const_custom_default_secret;
+
+const SECRET: [u8; 192] = const_custom_default_secret(42);
 
 // TODO. For a given order, the canonical form of a k-mer x, denoted by Canonical(x), is the smaller of x and Embedded Image. For example, under the lexicographic order, Canonical(CGGT) = ACCG.
 // Canonical(x) = min(x, revcomp(x))
@@ -114,17 +116,12 @@ pub fn find_syncmers<'a, const N: usize>(
             .iter()
             .map(|&pos| &seq[pos..pos + k])
             .filter(|&syncmer| {
-                let mut hash = Hash64::with_seed(42);
-                hash.write(syncmer);
-                let hash = hash.finish();
-                hash < downsample_threshold.unwrap()
+                xxh3_64_with_secret(syncmer, &SECRET) < downsample_threshold.unwrap()
             })
             .collect()
     }
 }
 
-// Best as determined by criterion benchmarks
-// 340.19 MiB/s
 /// Find positions of syncmers
 ///
 /// # Arguments

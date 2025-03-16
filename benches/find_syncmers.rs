@@ -3,6 +3,38 @@ use pulp::Arch;
 
 use syncmers::*;
 
+pub fn find_syncmers_pos_improved<const N: usize>(
+    k: usize,
+    s: usize,
+    ts: &[usize; N],
+    seq: &[u8],
+) -> Vec<usize> {
+    assert!(seq.len() > k);
+    assert!(s < k);
+    assert!(ts.iter().all(|&t| t <= k - s));
+    assert!(N < 5);
+    assert!(N == ts.len());
+
+    seq.windows(k)
+        .enumerate()
+        .filter_map(|(i, kmer)| {
+            let min_pos = kmer
+                .windows(s)
+                .enumerate()
+                .min_by_key(|(_, a)| *a);
+
+            // This branch is compiled out
+            if N == 1 && ts[0] == min_pos.unwrap().0 {
+                Some(i)
+            } else if N != 1 && ts[0..N].contains(&min_pos.unwrap().0) {
+                Some(i)
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>()
+}
+
 pub fn find_syncmers_current<const N: usize>(
     k: usize,
     s: usize,
@@ -279,6 +311,12 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("syncmers");
     group.throughput(criterion::Throughput::Bytes(sequence.len() as u64));
+
+    group.bench_function("improved?", |b| {
+        b.iter(|| {
+            find_syncmers_pos_improved(5, 2, &[2], black_box(&sequence));
+        })
+    });
 
     group.bench_function("find_syncmers_from_lib", |b| {
         b.iter(|| {

@@ -15,8 +15,8 @@ exclude = [
 ]
 
 [dependencies]
-pulp = "0.13.1"
-twox-hash = "1.6.3"
+pulp = "0.21"
+xxhash-rust = { version = "0.8.15", features = ["const_xxh3", "std", "xxh3"] }
 
 [profile.release]
 opt-level = 3
